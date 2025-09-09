@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
-import mlflow.pyfunc
 import pandas as pd
 import os
+import joblib
 
-MODEL_PATH = os.getenv("MODEL_PATH", "/models/latest")
+MODEL_PATH = os.getenv("MODEL_PATH", "./models/latest")
 
-app = FastAPI(tittle="My First ML API", version="0.1.0")
+app = FastAPI(tittle="ML API demo", version="0.1.0")
 
 class Features(BaseModel):
     f1: float = Field(..., description="feature 1")
@@ -24,7 +24,8 @@ def health():
 
 @app.on_event("startup")
 def _load_model():
-    app.state.model = mlflow.pyfunc.load_model(MODEL_PATH)
+    model_file = os.path.join(MODEL_PATH, "model.joblib")
+    app.state.model = joblib.load(model_file)
 
 @app.post("/predict")
 def predict(req: PredicRequest):
