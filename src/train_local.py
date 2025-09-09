@@ -15,6 +15,9 @@ def main():
     X, y = load_breast_cancer(return_X_y=True, as_frame=True)
     cols = X.columns[:5]    # Select first 5 features to match API schema
     X = X[cols]
+
+    # Rename columns to match API schema
+    X.columns = [f"f{i+1}" for i in range(len(cols))]
     
     # Split dataset
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
