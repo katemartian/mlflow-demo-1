@@ -57,7 +57,7 @@ def _get_model():
 @app.post("/predict")
 def predict(req: PredictRequest):
     model = _get_model()
-    df = pd.DataFrame([x.dict() for x in req.inputs])
+    df = pd.DataFrame([x.model_dump() for x in req.inputs])
     try:
         preds = app.state.model.predict(df)
     except Exception as e:
