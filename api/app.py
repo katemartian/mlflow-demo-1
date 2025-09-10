@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from pathlib import Path
 import pandas as pd
@@ -28,32 +28,38 @@ def health():
     model_file = MODEL_PATH / "model.joblib"
     return {
         "status": "ok", 
-        "model_path": str(MODEL_PATH),
+        "model_dir": str(MODEL_PATH),
         "model_exists": model_file.exists(),
         "cwd": os.getcwd(),
         "base_dir": str(BASE_DIR)
         }
 
-@app.on_event("startup")
-def _load_model():
+def _get_model():
+    if hasattr(app.state, "model") and app.state.model is not None:
+        return app.state.model
     model_file = MODEL_PATH / "model.joblib"
     if not model_file.exists():
-        raise FileNotFoundError(f"Model file not found: {model_file}."
-                                f"Trin first or set MODEL_PATH env var.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Model file not found: {model_file}."
+                   f"Trin first or set MODEL_PATH env var."
+            )
     try:
+        import joblib
         app.state.model = joblib.load(model_file)
+        return app.state.model
     except Exception as e:
-        raise RuntimeError(f"Failed to load model from {model_file}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load model from {model_file}: {e}"
+            )
 
 @app.post("/predict")
 def predict(req: PredictRequest):
-    if not hasattr(app.state, "model"):
-        raise HTTPException(status_code=500, detail="Model not loaded")
-    
+    model = _get_model()
     df = pd.DataFrame([x.dict() for x in req.inputs])
     try:
         preds = app.state.model.predict(df)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Inference failed: {e}")
-    
     return {"preds": preds.tolist(), "n": len(preds)}
