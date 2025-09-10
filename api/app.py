@@ -56,6 +56,9 @@ def _get_model():
 
 @app.post("/predict")
 def predict(req: PredictRequest):
+    if not req.inputs:
+        return {"preds": [], "n": 0}
+        
     model = _get_model()
     df = pd.DataFrame([x.model_dump() for x in req.inputs])
     try:

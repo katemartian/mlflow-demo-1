@@ -22,4 +22,32 @@ def test_predict():
     assert r.status_code == 200
     out = r.json()
     assert out["n"] == len(payload["inputs"])
-    assert isinstance(out["preds"], list) 
+    assert isinstance(out["preds"], list)
+
+def test_predict_invalid_type():
+    payload = {
+        "inputs": [
+            {"f1": "bad", "f2": 1, "f3": 2, "f4": 3, "f5": 4}
+        ]
+    }
+    r = client.post("/predict", json=payload)
+    assert r.status_code == 422  # Unprocessable Entity from FastAPI validation
+
+def test_predict_missing_field():
+    payload = {
+        "inputs": [
+            {"f1": 1, "f2": 2, "f3": 3, "f4": 4}  # Missing f5
+        ]
+    }
+    r = client.post("/predict", json=payload)
+    assert r.status_code == 422
+
+def test_predict_empty():
+    payload = {
+        "inputs": []
+    }
+    r = client.post("/predict", json=payload)
+    assert r.status_code == 200
+    out = r.json()
+    assert out["n"] == 0
+    assert out["preds"] == []        
