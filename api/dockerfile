@@ -1,0 +1,15 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# System deps (optionnal, but small)
+RUN pip install --no-cache-dir fastapi uvicorn joblib scikit-learn pandas numpy pydantic mlflow httpx
+
+# Copy source code
+COPY . /app/api
+
+# Default model path insider the container; we'll mount host ./models to /app/models
+ENV MODEL_PATH=/app/models/latest 
+
+EXPOSE 8000
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
