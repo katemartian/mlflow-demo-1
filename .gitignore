@@ -1,7 +1,8 @@
 .venv1/
 __pycache__/
-mlruns/
+mlruns*/
 models/
 *.pyc
 .DS_Store
 .env
+mlflow.db
