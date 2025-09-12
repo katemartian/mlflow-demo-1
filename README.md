@@ -54,9 +54,30 @@ python -m pytest -q
 ```
 
 ## Folder layout
+```bash
+.
+├─ api/                 # FastAPI app + Dockerfile
+├─ src/                 # training script (logs to ./mlruns, exports ./models/latest)
+├─ models/latest/       # trained model (model.joblib, schema.json)
+├─ mlruns/              # MLflow local tracking store (created at first run)
+├─ tests/               # API tests
+├─ docker-compose.yml   # API + MLflow UI stack
+└─ README.md
+```
 
 ## Screenshots
 
-- MLflow UI
-- FastAPI /docs page
-- Example /predict response
+- FastAPI Docs  
+  ![FastAPI Docs](docs/img/fastapi-docs.png)
+
+- Predict Endpoint Response  
+  ![Predict Example](docs/img/predict-example.png)
+
+- MLflow UI (Experiments)  
+  ![MLflow UI](docs/img/mlflow-ui.png)
+
+- MLflow Run Details  
+  ![MLflow Run](docs/img/mlflow-run-details.png)
+
+- Tests Passing  
+  ![Tests Passing](docs/img/tests-pass.png)
