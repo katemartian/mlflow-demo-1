@@ -28,8 +28,8 @@ def main():
         ('clf', LogisticRegression(max_iter=1000))
     ])
 
-    mlflow.set_tracking_uri("file:./mlruns")
-    mlflow.set_experiment("breast_cancer_classification")
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_experiment("ml-demo-1")
 
     with mlflow.start_run():
         mlflow.sklearn.autolog(log_models=True)

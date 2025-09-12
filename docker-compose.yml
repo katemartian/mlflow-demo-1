@@ -1,11 +1,17 @@
 services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
-    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri file:/mlruns
+    working_dir: /work
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /work/mlruns
     ports:
       - "5000:5000"
     volumes:
-      - ./mlruns:/mlruns
+      - ./:/work # Mount the entire project directory
 
   api:
     build: ./api
