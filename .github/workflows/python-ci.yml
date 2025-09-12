@@ -32,6 +32,11 @@ jobs:
           python -m pip nstall --upgrade pip
           pip install -r requirements.txt
 
+      - name: Train model (prepare artifacts for testing)
+        run: |
+          python src/train_local.py
+          test -f models/latest/model.joblib
+
       - name: Run tests
         run: |
           python -m pytest -q
