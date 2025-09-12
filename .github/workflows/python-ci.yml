@@ -29,7 +29,7 @@ jobs:
 
       - name: Install dependecies
         run: |
-          python -m pip nstall --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Train model (prepare artifacts for testing)
