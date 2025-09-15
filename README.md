@@ -1,6 +1,20 @@
 # ML Demo Portfolio (FastAPI + MLflow + Docker)
 
-End-to-end demo: train scikit-learn model, log runs to MLflow, and serve predictions via FastAPI service. Runs **locally and in Docker**.
+[![Python CI](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml/badge.svg)](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml)
+
+End-to-end **Machine Learning service** built with **FastAPI**, **MLflow**, and **Docker**, designed to showcase modern MLOps skills.  
+This project demonstrates the full lifecycle: training, experiment tracking, containerization, testing, and serving predictions through an API.
+
+---
+
+## Highlights
+- **FastAPI REST API** with typed `/predict` endpoint and input validation  
+- **MLflow tracking** for experiments, metrics (AUC/Accuracy), and model registry  
+- **Docker & Compose stack** (API + MLflow UI)  
+- **Automated CI tests** via GitHub Actions (FAST mode for speed)  
+- **Screenshots included**: API docs, MLflow UI, prediction examples, and passing tests  
+
+---
 
 ## A) Run locally (WSL/Ubuntu)
 
