@@ -1,6 +1,6 @@
 services:
   mlflow:
-    image: ghcr.io/mlflow/mlflow:latest
+    image: ghcr.io/mlflow/mlflow:v2.22.2
     working_dir: /work
     command: >
       mlflow server
