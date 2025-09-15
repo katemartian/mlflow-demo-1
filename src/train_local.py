@@ -9,6 +9,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 import pandas as pd
 import joblib
+import os
+
+FAST = os.getenv("FAST_TRAIN") == "1"
 
 def main():
     # Load dataset
@@ -18,6 +21,11 @@ def main():
 
     # Rename columns to match API schema
     X.columns = [f"f{i+1}" for i in range(len(cols))]
+
+    # If FAST_TRAIN is set, use a smaller subset of the data
+    if FAST:
+        X = X.iloc[:80].copy()
+        y = y.iloc[:80].copy()
     
     # Split dataset
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
@@ -25,14 +33,18 @@ def main():
     # Preprocessing and model pipeline
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('clf', LogisticRegression(max_iter=1000))
+        ('clf', LogisticRegression(
+            max_iter=50 if FAST else 1000,
+            solver='liblinear' if FAST else 'lbfgs')
+        
+        )
     ])
 
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
     mlflow.set_experiment("ml-demo-1")
 
     with mlflow.start_run():
-        mlflow.sklearn.autolog(log_models=True)
+        mlflow.sklearn.autolog(log_models=False)
         pipeline.fit(X_train, y_train)
 
         probabilities = pipeline.predict_proba(X_test)[:, 1]
