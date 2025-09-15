@@ -34,7 +34,7 @@ jobs:
 
       - name: Train model (prepare artifacts for testing)
         env:
-          FAST_TRAIN: 1
+          FAST_TRAIN: "1"
           MLFLOW_TRACKING_URI: "file:./mlruns"
         run: |
           python src/train_local.py
