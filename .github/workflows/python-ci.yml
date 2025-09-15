@@ -33,8 +33,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: Train model (prepare artifacts for testing)
+        env:
+          FAST_TRAIN: 1
+          MLFLOW_TRACKING_URI: "file:./mlruns"
         run: |
-          FAST_TRAIN=1 python src/train_local.py
+          python src/train_local.py
           test -f models/latest/model.joblib
 
       - name: Run tests
