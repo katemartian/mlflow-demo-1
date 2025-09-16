@@ -95,3 +95,25 @@ python -m pytest -q
 
 - Tests Passing  
   ![Tests Passing](docs/img/tests-pass.png)
+
+
+## Model Registry
+
+This project also demonstrates **end-to-end model lifecycle management** using the **MLflow Model Registry**.
+
+### Steps shown
+1. **Log & Track**  
+   Each training run logs metrics (AUC, Accuracy) and saves the trained model as an artifact.
+2. **Register**  
+   Logged models are registered into the **MLflow Model Registry**.
+3. **Promote**  
+   Versions are transitioned through stages (**Staging → Production**), simulating real-world workflows.
+
+### Screenshots
+| Step | Screenshot |
+|------|-------------|
+| Experiment run with metrics & artifacts | ![Experiment with metrics](docs/img/mlflow-experiment.png) |
+| Model registered in Registry | ![Model registered](docs/img/mlflow-model-registered.png) |
+| Model promoted to Production | ![Model in Production](docs/img/mlflow-model-prod.png) |
+
+---
