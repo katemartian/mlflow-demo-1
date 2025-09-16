@@ -117,3 +117,19 @@ This project also demonstrates **end-to-end model lifecycle management** using t
 | Model promoted to Production | ![Model in Production](docs/img/mlflow-model-prod.png) |
 
 ---
+
+**Note on MLflow registry:** Stages (Staging/Production) are deprecated in newer MLflow versions.
+This project uses **aliases** instead (e.g., `@staging`, `@prod`). Promotion is simply updating the alias to point to a new version:
+
+```python
+client.set_registered_model_alias("ml-demo-model", "prod", VERSION)
+# load the production model:
+mlflow.pyfunc.load_model("models:/ml-demo-model@prod")
+```
+
+### Makefile quickstart (registry)
+```bash
+make register   # register latest run and point alias @prod to it
+make prod       # repoint @prod to the latest registered version
+# (optional) make stage  # set alias @staging to latest
+```

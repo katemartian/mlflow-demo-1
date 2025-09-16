@@ -3,11 +3,20 @@ import json
 from pathlib import Path
 import joblib
 import pandas as pd
+import argparse
+
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--register", action="store_true", help="Register model after training")
+    p.add_argument("--stage", choices=["None","Staging","Production"], default="None")
+    return p.parse_args()
 
 # detect fast mode (for CI)
 FAST = os.getenv("FAST_TRAIN") == "1"
 
 def main():
+    args = parse_args()
+
     export_path = Path("models/latest")
     export_path.mkdir(parents=True, exist_ok=True)
 
@@ -72,7 +81,7 @@ def main():
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
     mlflow.set_experiment("ml-demo-2")
 
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
         # train
         pipe.fit(X_tr, y_tr)
 
@@ -94,7 +103,21 @@ def main():
             input_example=input_example,
             signature=signature,
         )
-
+        if args.register:
+            from mlflow.tracking import MlflowClient
+            client = MlflowClient()
+            mv = client.create_model_version(
+                name=os.getenv("MODEL_NAME","ml-demo-model"),
+                source=f"runs:/{run.info.run_id}/model",
+                run_id=run.info.run_id,
+            )
+            if args.stage != "None":
+                client.set_registered_model_alias(
+                    name=mv.name,
+                    version=mv.version,
+                    alias=args.stage
+                )
+                
         # save local serving copy
         schema_file = export_path / "schema.json"
         schema_file.write_text(json.dumps({"feature_mapping": mapping}, indent=2))
