@@ -39,3 +39,12 @@ stage:
 
 prod:
 	MLFLOW_TRACKING_URI=$(TRACKING) $(PY) scripts/set_alias.py --alias prod --model $(MODEL)
+
+verify-aliases:
+	MLFLOW_TRACKING_URI=$(TRACKING) MODEL_NAME=$(MODEL) $(PY) scripts/verify_aliases.py
+
+list-aliases:
+	MLFLOW_TRACKING_URI=$(TRACKING) MODEL_NAME=$(MODEL) $(PY) scripts/list_aliases.py
+
+predict:
+	MLFLOW_TRACKING_URI=$(TRACKING) MODEL_NAME=$(MODEL) $(PY) src/load_and_predict.py
