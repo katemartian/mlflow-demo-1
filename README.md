@@ -151,7 +151,7 @@ Aliases make promotion a simple pointer update — no deprecation warnings, easy
 - **Run with metrics & artifacts**  
   ![Experiment run](docs/img/mlflow-experiment.png)
 - **Registered from run (badge)**  
-  ![Registered model from run](docs/img/mlflow-model-registered-run.png)
+  ![Registered model from run](docs/img/mlflow-model-registered.png)
 - **Aliases visible on version** (turn on *New model registry UI* toggle)  
   ![Aliases on version](docs/img/mlflow-aliases.png)
 
