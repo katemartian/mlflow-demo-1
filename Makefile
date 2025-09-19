@@ -1,4 +1,4 @@
-PY=python
+PY ?= $(shell command -v python || command -v python3)
 TRACKING=http://127.0.0.1:5000
 EXP=ml-demo-2
 MODEL=ml-demo-model
@@ -35,23 +35,7 @@ register:
 	$(PY) register_and_promote.py
 
 stage:
-	MLFLOW_TRACKING_URI=$(TRACKING) $(PY) - << 'PY'
-from mlflow.tracking import MlflowClient
-name="ml-demo-model"
-c=MlflowClient()
-latest=max(c.search_model_versions(f"name='{name}'"), key=lambda v: v.creation_timestamp)
-c.set_registered_model_alias(name,"staging", latest.version)
-print(f"@staging -> v{latest.version}")
+	MLFLOW_TRACKING_URI=$(TRACKING) $(PY) scripts/set_alias.py --alias staging --model $(MODEL)
 
 prod:
-	MLFLOW_TRACKING_URI=$(TRACKING) $(PY) - << 'PY'
-from mlflow.tracking import MlflowClient
-name="ml-demo-model"
-c=MlflowClient()
-# Pick the newest version by creation timestamp
-latest=max(c.search_model_versions(f"name='{name}'"), key=lambda v: v.creation_timestamp)
-c.set_registered_model_alias(name,"prod", latest.version)
-print(f"@prod -> v{latest.version}")
-
-
-PY
+	MLFLOW_TRACKING_URI=$(TRACKING) $(PY) scripts/set_alias.py --alias prod --model $(MODEL)
