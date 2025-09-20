@@ -3,6 +3,7 @@
 [![Python CI](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml/badge.svg)](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml)
 
 End-to-end **Machine Learning service** built with **FastAPI**, **MLflow**, and **Docker** — designed to showcase modern **MLOps** on a local stack.
+
 Covers the full lifecycle: training, experiment tracking, model registry (with aliases), testing, CI, containerization, and serving predictions via an API.
 
 
@@ -97,9 +98,9 @@ Notes
 ```bash
 make train
 ```
-This runs `src/train_local.py` (LogisticRegression on a small dataset), logs accuracy/AUC and a model artifact at `artifact_path="model"`.
+This runs `src/train_local.py` (LogisticRegression on a small dataset), logs **accuracy/AUC** and a model artifact at `artifact_path="model"`.
 
-### Register the latest run & set @prod
+### Register the latest run & set `@prod`
 
 ```bash
 make register
@@ -108,7 +109,7 @@ What it does:
 - Creates a new model version from the latest finished run (`runs:/<RUN_ID>/model`)
 - Sets alias `@prod` → that version (alias-based promotion)
 
-> Tip: Open the UI at **MLflow** -> **Experiments** -> **ml-demo-2** -> **latest run** -> Artifacts -> `model/` -> **⋮** -> **Register Model** to see the **"Registered from run"** badge.
+> Tip: Open the UI at **MLflow** -> **Experiments** -> **ml-demo-2** -> **latest run** -> **Artifacts** -> `model/` -> **⋮** -> **Register Model** to see the **"Registered from run"** badge.
 
 ## Alias-Based Promotion
 
@@ -145,7 +146,9 @@ import mlflow, pandas as pd
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 
 model = mlflow.pyfunc.load_model("models:/ml-demo-model@prod")
-X = pd.DataFrame([{"f1": 0.5, "f2": -1.2, "f3": 3.1, "f4": 0.7, "f5": 1.0}])
+X = pd.DataFrame([{
+  "f1": 0.5, "f2": -1.2, "f3": 3.1, "f4": 0.7, "f5": 1.0
+  }])
 print("Prediction:", model.predict(X).tolist())
 ```
 
@@ -187,10 +190,10 @@ make tests
 
 - Workflow: `.github/workflows/python-ci.yml`
 - On each push/PR:
-  1. Set up Python
-  2. Install deps
-  3. FAST training (env FAST_TRAIN=1) to create models/latest/model.joblib instantly
-  4.Run pytest
+1. Set up Python
+2. Install deps
+3. FAST training (env FAST_TRAIN=1) to create models/latest/model.joblib instantly
+4. Run pytest
 
 This keeps CI **fast and deterministic** without contacting MLflow.
 
@@ -230,45 +233,38 @@ This keeps CI **fast and deterministic** without contacting MLflow.
   ![Experiment run](docs/img/mlflow-experiment.png)
 
 - **Registered model from run (with badge)**  
-  ![Registered model from run](docs/img/mlflow-model-registered-run.png)
+  ![Registered model from run](docs/img/mlflow-model-registered.png)
 
 - **Aliases visible on version (New UI toggle ON)**  
   ![Aliases on version](docs/img/mlflow-aliases.png)
 
 - **API docs (Swagger UI)**  
-  ![API docs](docs/img/api-openapi.png)
-
-- **Passing tests / CI run**  
-  ![CI passing](docs/img/ci-passing.png)
-
-### Old 
-
-- FastAPI Docs  
   ![FastAPI Docs](docs/img/fastapi-docs.png)
 
-- Predict Endpoint Response  
+- **Predict Endpoint Response**  
   ![Predict Example](docs/img/predict-example.png)
 
-- MLflow UI (Experiments)  
+- **MLflow UI (Experiments)**
   ![MLflow UI](docs/img/mlflow-ui.png)
 
-- MLflow Run Details  
+- **MLflow Run Details** 
   ![MLflow Run](docs/img/mlflow-run-details.png)
 
-- Tests Passing  
-  ![Tests Passing](docs/img/tests-pass.png)
+ - **Experiment run with metrics & artifacts**
+ ![Experiment with metrics](docs/img/mlflow-experiment.png)
 
+- **Model registered in Registry**
+![Model registered](docs/img/mlflow-model-registered.png)
 
-| Step | Screenshot |
-|------|-------------|
-| Experiment run with metrics & artifacts | ![Experiment with metrics](docs/img/mlflow-experiment.png) |
-| Model registered in Registry | ![Model registered](docs/img/mlflow-model-registered.png) |
-| Model promoted to Production | ![Model in Production](docs/img/mlflow-model-prod.png) |
+- **Model promoted to Production**
+![Model in Production](docs/img/mlflow-model-prod.png)
 
 - **Run with metrics & artifacts**  
   ![Experiment run](docs/img/mlflow-experiment.png)
-- **Registered from run (badge)**  
+
+- **Registered from run (badge)**
   ![Registered model from run](docs/img/mlflow-model-registered.png)
+  
 - **Aliases visible on version** (turn on *New model registry UI* toggle)  
   ![Aliases on version](docs/img/mlflow-aliases.png)
 
@@ -296,10 +292,6 @@ This keeps CI **fast and deterministic** without contacting MLflow.
 
 **CI slow or failing to reach MLflow**
 - CI uses `FAST_TRAIN=1` path that skips MLflow and writes a dummy `models/latest/model.joblib`.
-
-Makefile “missing separator”
-- Recipe lines must start with a tab, not spaces.
-- Prefer small Python scripts in `scripts/` (avoids heredoc pitfalls).
 
 `python: not found`  
 - Use `make PY=python3` train or auto-detect in Makefile:
