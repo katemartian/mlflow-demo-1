@@ -224,10 +224,13 @@ This keeps CI **fast and deterministic** without contacting MLflow.
 ├── Makefile                   # one-liners: up, train, register, stage, prod, predict
 ├── requirements.txt
 └── README.md
-
 ```
 
+
 ## Screenshots
+
+- **MLflow UI (Experiments)**
+  ![MLflow UI](docs/img/mlflow-ui.png)
 
 - **Experiment run with metrics & artifacts**  
   ![Experiment run](docs/img/mlflow-experiment.png)
@@ -243,30 +246,6 @@ This keeps CI **fast and deterministic** without contacting MLflow.
 
 - **Predict Endpoint Response**  
   ![Predict Example](docs/img/predict-example.png)
-
-- **MLflow UI (Experiments)**
-  ![MLflow UI](docs/img/mlflow-ui.png)
-
-- **MLflow Run Details** 
-  ![MLflow Run](docs/img/mlflow-run-details.png)
-
- - **Experiment run with metrics & artifacts**
- ![Experiment with metrics](docs/img/mlflow-experiment.png)
-
-- **Model registered in Registry**
-![Model registered](docs/img/mlflow-model-registered.png)
-
-- **Model promoted to Production**
-![Model in Production](docs/img/mlflow-model-prod.png)
-
-- **Run with metrics & artifacts**  
-  ![Experiment run](docs/img/mlflow-experiment.png)
-
-- **Registered from run (badge)**
-  ![Registered model from run](docs/img/mlflow-model-registered.png)
-  
-- **Aliases visible on version** (turn on *New model registry UI* toggle)  
-  ![Aliases on version](docs/img/mlflow-aliases.png)
 
 
 ## Troubleshooting
