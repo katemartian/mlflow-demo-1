@@ -2,84 +2,246 @@
 
 [![Python CI](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml/badge.svg)](https://github.com/katemartian/mlflow-demo-1/actions/workflows/python-ci.yml)
 
-End-to-end **Machine Learning service** built with **FastAPI**, **MLflow**, and **Docker**, designed to showcase modern MLOps skills.  
-This project demonstrates the full lifecycle: training, experiment tracking, containerization, testing, and serving predictions through an API.
+End-to-end **Machine Learning service** built with **FastAPI**, **MLflow**, and **Docker** — designed to showcase modern **MLOps** on a local stack.
+Covers the full lifecycle: training, experiment tracking, model registry (with aliases), testing, CI, containerization, and serving predictions via an API.
+
+
+## Table of Contents
+
+- [Highlights](#highlights)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Quickstart](#quickstart)
+- [Running the Stack](#running-the-stack)
+- [Training & Registration](#training--registration)
+- [Alias-Based Promotion](#alias-based-promotion)
+- [Consume the Production Model](#consume-the-production-model)
+- [API (FastAPI)](#api-fastapi)
+- [Tests & CI](#tests--ci)
+- [Project Structure](#project-structure)
+- [Screenshots](#screenshots)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
 
 ---
-
 ## Highlights
-- **FastAPI REST API** with typed `/predict` endpoint and input validation  
-- **MLflow tracking** for experiments, metrics (AUC/Accuracy), and model registry  
-- **Docker & Compose stack** (API + MLflow UI)  
-- **Automated CI tests** via GitHub Actions (FAST mode for speed)  
-- **Screenshots included**: API docs, MLflow UI, prediction examples, and passing tests  
 
+- **FastAPI** REST API with typed `/predict` endpoint and Pydantic validation.
+- **MLflow** tracking (metrics), **Model Registry** with **aliases** (`@staging`, `@prod`).
+- **Docker Compose** stack: MLflow UI + API.
+- **GitHub Actions** CI: fast, deterministic training (dummy) + tests.
+- **Makefile** one-liners to train, register, promote, and predict.
 ---
 
-## A) Run locally (WSL/Ubuntu)
+
+## Architecture
+
+```java
+Train (local) ──► MLflow Server (docker) ──► artifacts served over HTTP
+     │                                     ▲
+     └──► models/latest/model.joblib       │
+                                           │
+FastAPI API (docker) ◄─────────────────────┘  (serves model.joblib)
+
+Model Registry: ml-demo-model
+  └── versions v1..vN
+       └── aliases:  @staging, @prod (pointers to versions)
+```
+
+## Prerequisites
+
+- **Windows + WSL2 (Ubuntu)** or Linux/Mac
+- **Docker Desktop** (WSL integration enabled)
+- **VS Code** (Remote – WSL recommended)
+- **Python 3.10+** (venv)
+- **make** (on Ubuntu: `sudo apt update && sudo apt install -y make`)
+
+
+## Quickstart
 
 ```bash
-python -m venv .venv1 && source .venv1/bin/activate
+# 1) Clone & enter
+git clone https://github.com/katemartian/mlflow-demo-1.git
+cd mlflow-demo-1
+
+# 2) Python env
+python3 -m venv .venv
+source .venv/bin/activate        # Windows/WSL bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-python src/train_local.py                   # Creates ./models/latest
-uvicorn api.app:app --reload --port 8000    # http://127.0.0.1:8000/docs
-```
 
-## B) Run in Docker (single container)
-
-```bash
-docker build -t mlflow-demo-1 ./api
-docker run --rm -p 8000:8000 -v "$(pwd)/models:/app/models:ro" mlflow-demo-1
-# Open http://127.0.0.1:8000/docs
-```
-
-## C) Run with Docker Compose (API + MLflow UI)
-
-```bash
-docker compose up --build
+# 3) Start services (MLflow UI + API)
+make up
 # MLflow UI: http://127.0.0.1:5000
-# API docs:  http://127.0.0.1:8000/docs
+# API docs : http://127.0.0.1:8000/docs
 ```
 
-## API Endpoints
 
-.GET /health -> status + model visibility
-
-.POST /predict -> JSON body:
-
-```json
-{
-    "inputs": [
-        {
-            "f1": 0.1,
-            "f2": -0.2,
-            "f3": 1.1,
-            "f4": 0.0,
-            "f5": 2.3
-        }
-    ]
-}
-```
-
-## Tests
+## Running the Stack
 
 ```bash
-python -m pytest -q
+make up      # build & start MLflow server + API
+make down    # stop and remove containers
+```
+Notes
+- MLflow server runs with `--serve-artifacts` and stores data inside the repo (mounted at `/work` in the container).
+- Default experiment used: `ml-demo-2`
+- Registered model name: `ml-demo-model`
+
+
+## Training & Registration
+
+### Full training (logs metrics & model to MLflow)
+
+```bash
+make train
+```
+This runs `src/train_local.py` (LogisticRegression on a small dataset), logs accuracy/AUC and a model artifact at `artifact_path="model"`.
+
+### Register the latest run & set @prod
+
+```bash
+make register
+```
+What it does:
+- Creates a new model version from the latest finished run (`runs:/<RUN_ID>/model`)
+- Sets alias `@prod` → that version (alias-based promotion)
+
+> Tip: Open the UI at **MLflow** -> **Experiments** -> **ml-demo-2** -> **latest run** -> Artifacts -> `model/` -> **⋮** -> **Register Model** to see the **"Registered from run"** badge.
+
+## Alias-Based Promotion
+
+MLflow is deprecating *stages*; this project uses **aliases** (e.g., `@staging`, `@prod`) for promotion.
+
+```bash
+make stage       # set @staging -> latest registered version
+make prod        # set @prod    -> latest registered version
+make verify-aliases
+# @staging -> ml-demo-model vN
+# @prod    -> ml-demo-model vN
+
+make list-aliases
+# v1: aliases=[]
+# ...
+# vN: aliases=['prod','staging']
 ```
 
-## Folder layout
+> In the MLflow UI, switch **New model registry UI** ON on a Version page to see the **Aliases** section.
+
+
+## Consume the Production Model
+
+Run a one-liner demo:
+
 ```bash
+make predict
+```
+
+Under the hood (`src/load_and_predict.py`):
+
+```python
+import mlflow, pandas as pd
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
+model = mlflow.pyfunc.load_model("models:/ml-demo-model@prod")
+X = pd.DataFrame([{"f1": 0.5, "f2": -1.2, "f3": 3.1, "f4": 0.7, "f5": 1.0}])
+print("Prediction:", model.predict(X).tolist())
+```
+
+
+## API (FastAPI)
+
+- Docs (OpenAPI): `http://127.0.0.1:8000/docs`
+- Health check:
+  - `GET /health`-> `{"status":"ok","model_exists":true}`
+- Predict:
+  - `POST /predict`
+  - **Request body**:
+    ```json
+    {
+      "inputs": [
+        { "f1": 0.5, "f2": -1.2, "f3": 3.1, "f4": 0.7, "f5": 1.0 }
+      ]
+    }
+    ```
+  - **Response**:
+    ```json
+    { "preds": [0], "n": 1 }
+    ```
+
+> The API reads a local serving artifact at `models/latest/model.joblib` (mounted into the API container).
+
+
+## Tests & CI
+
+### Run tests locally
+
+```bash
+make tests
+```
+- Includes unit/API tests (pytest).
+- `/predict` tests use a small sample and validate schema & responses.
+
+### GitHub Actions (CI)
+
+- Workflow: `.github/workflows/python-ci.yml`
+- On each push/PR:
+  1. Set up Python
+  2. Install deps
+  3. FAST training (env FAST_TRAIN=1) to create models/latest/model.joblib instantly
+  4.Run pytest
+
+This keeps CI **fast and deterministic** without contacting MLflow.
+
+**Badge**: at the top of this README
+
+
+## Project structure
+
+```
 .
-├─ api/                 # FastAPI app + Dockerfile
-├─ src/                 # training script (logs to ./mlruns, exports ./models/latest)
-├─ models/latest/       # trained model (model.joblib, schema.json)
-├─ mlruns/              # MLflow local tracking store (created at first run)
-├─ tests/               # API tests
-├─ docker-compose.yml   # API + MLflow UI stack
-└─ README.md
+├── api/
+│   ├── app.py                 # FastAPI app
+│   ├── Dockerfile
+│   └── requirements.txt       # API subset if separated
+├── models/
+│   └── latest/                # serving artifact for API (model.joblib, schema.json)
+├── scripts/
+│   ├── set_alias.py           # set @staging / @prod to latest version
+│   ├── verify_aliases.py      # prints alias -> version mapping
+│   └── list_aliases.py        # lists every version with its aliases
+├── src/
+│   ├── train_local.py         # full training (logs to MLflow server)
+│   └── load_and_predict.py    # loads models:/ml-demo-model@prod and predicts
+├── tests/                     # pytest suite (API tests)
+├── docs/
+│   └── img/                   # screenshots used in README
+├── docker-compose.yml         # MLflow server + API
+├── Makefile                   # one-liners: up, train, register, stage, prod, predict
+├── requirements.txt
+└── README.md
+
 ```
 
 ## Screenshots
+
+- **Experiment run with metrics & artifacts**  
+  ![Experiment run](docs/img/mlflow-experiment.png)
+
+- **Registered model from run (with badge)**  
+  ![Registered model from run](docs/img/mlflow-model-registered-run.png)
+
+- **Aliases visible on version (New UI toggle ON)**  
+  ![Aliases on version](docs/img/mlflow-aliases.png)
+
+- **API docs (Swagger UI)**  
+  ![API docs](docs/img/api-openapi.png)
+
+- **Passing tests / CI run**  
+  ![CI passing](docs/img/ci-passing.png)
+
+### Old 
 
 - FastAPI Docs  
   ![FastAPI Docs](docs/img/fastapi-docs.png)
@@ -97,57 +259,12 @@ python -m pytest -q
   ![Tests Passing](docs/img/tests-pass.png)
 
 
-## Model Registry
-
-This project also demonstrates **end-to-end model lifecycle management** using the **MLflow Model Registry**.
-
-### Steps shown
-1. **Log & Track**  
-   Each training run logs metrics (AUC, Accuracy) and saves the trained model as an artifact.
-2. **Register**  
-   Logged models are registered into the **MLflow Model Registry**.
-3. **Promote**  
-   Versions are transitioned through stages (**Staging → Production**), simulating real-world workflows.
-
-### Screenshots
 | Step | Screenshot |
 |------|-------------|
 | Experiment run with metrics & artifacts | ![Experiment with metrics](docs/img/mlflow-experiment.png) |
 | Model registered in Registry | ![Model registered](docs/img/mlflow-model-registered.png) |
 | Model promoted to Production | ![Model in Production](docs/img/mlflow-model-prod.png) |
 
----
-
-**Note on MLflow registry:** Stages (Staging/Production) are deprecated in newer MLflow versions.
-This project uses **aliases** instead (e.g., `@staging`, `@prod`). Promotion is simply updating the alias to point to a new version:
-
-```python
-client.set_registered_model_alias("ml-demo-model", "prod", VERSION)
-# load the production model:
-mlflow.pyfunc.load_model("models:/ml-demo-model@prod")
-```
-
-### Makefile quickstart (registry)
-```bash
-make register   # register latest run and point alias @prod to it
-make prod       # repoint @prod to the latest registered version
-# (optional) make stage  # set alias @staging to latest
-```
-
-## 🏷️ Alias-Based Model Registry (MLflow 2.22+)
-
-This project uses **MLflow aliases** (e.g., `@staging`, `@prod`) instead of legacy “Stages.”  
-Aliases make promotion a simple pointer update — no deprecation warnings, easy to automate.
-
-### Flow at a glance
-1. **Train** a model and log artifacts to MLflow.  
-2. **Register** the latest run as a new model version.  
-3. **Promote** by pointing an alias (e.g., `@prod`) to that version.  
-4. **Consume** the current production model via `models:/NAME@prod`.
-
----
-
-### 📸 Screenshots
 - **Run with metrics & artifacts**  
   ![Experiment run](docs/img/mlflow-experiment.png)
 - **Registered from run (badge)**  
@@ -155,80 +272,43 @@ Aliases make promotion a simple pointer update — no deprecation warnings, easy
 - **Aliases visible on version** (turn on *New model registry UI* toggle)  
   ![Aliases on version](docs/img/mlflow-aliases.png)
 
----
 
-### 🧪 Train & Register
-```bash
-# start services (MLflow server + API)
-make up
+## Troubleshooting
 
-# full training (logs metrics + model artifact to MLflow)
-make train
+**Docker not found in WSL**
+- Enable **WSL Integration** in Docker Desktop → Settings → Resources → WSL Integration.
 
-# register latest run and point alias @prod to it
-make register
+**PermissionError: `/work` or artifacts path**
+- Ensure MLflow server runs with `--serve-artifacts`.
+- Use a **new experiment** (e.g., `ml-demo-2`) created after enabling `--serve-artifacts`, so its `artifact_location` is `mlflow-artifacts:/...`.
+
+**Client/Server version mismatch**
+- Pin versions in `requirements.txt` and `docker-compose.yml`. Example:
+  - `mlflow==2.22.2`, `scikit-learn==1.6.1`
+  - `docker-compose.yml`: `image: ghcr.io/mlflow/mlflow:v2.22.2`
+
+**DB schema mismatch**
+- Upgrade or reset MLflow DB:
+  ```bash
+  docker compose run --rm mlflow mlflow db upgrade sqlite:////work/mlflow.db
+  # or back up & remove mlflow.db, then restart
+  ```
+
+**CI slow or failing to reach MLflow**
+- CI uses `FAST_TRAIN=1` path that skips MLflow and writes a dummy `models/latest/model.joblib`.
+
+Makefile “missing separator”
+- Recipe lines must start with a tab, not spaces.
+- Prefer small Python scripts in `scripts/` (avoids heredoc pitfalls).
+
+`python: not found`  
+- Use `make PY=python3` train or auto-detect in Makefile:
+
+```makefile
+PY ?= $(shell command -v python || command -v python3)
 ```
 
 
-Under the hood, register calls `register_and_promote.py` to:
+## License
 
- - create a new model version from the latest finished run (`runs:/<RUN_ID>/model`)
-
- - set alias @prod to that version
-
-## 🚦 Promote with Aliases
-
-Promote (or repoint) aliases using simple Make targets:
-```bash
-# set alias @staging -> latest version
-make stage
-
-# set alias @prod -> latest version
-make prod
-
-# verify which versions aliases point to
-make verify-aliases
-
-# list every version with its aliases
-make list-aliases
-```
-
-Behind the scenes:
-
-- `scripts/set_alias.py` calls `MlflowClient.set_registered_model_alias(name, alias, version)`
-
-- `scripts/verify_aliases.py` uses `get_model_version_by_alias(...)`
-
-- `scripts/list_aliases.py` prints aliases across all versions
-
-## 📦 Consume the Production Model
-
-Load the model by alias and run a quick prediction:
-
-```python
-# src/load_and_predict.py
-import mlflow, pandas as pd
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
-
-model = mlflow.pyfunc.load_model("models:/ml-demo-model@prod")
-X = pd.DataFrame([{"f1": 0.5, "f2": -1.2, "f3": 3.1, "f4": 0.7, "f5": 1.0}])
-print("Prediction:", model.predict(X).tolist())
-```
-Or just:
-```bash
-make predict
-```
-
-## 💡 Notes & Tips
-
-- MLflow stages are deprecated; aliases are the modern replacement.
-
-- Aliases are just labels — promotion is a zero-copy pointer update.
-
-- Want a quick status check?
-
-```bash
-make verify-aliases
-# @staging -> ml-demo-model v5
-# @prod    -> ml-demo-model v5
-```
+This project is licensed under the **MIT License** -- see the [LICENSE](LICENSE) file for details.
